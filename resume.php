@@ -209,31 +209,31 @@ table.dated_position {
 <div class="header_section">
     <h1>Professional Projects</h1>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/balancinator/src/master/" class="anounder">Balancinator</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/balancinator/src/master/" class="anounder">Balancinator</a> [ C <span class="dot"></span> SQL ]</h3>
         <p class="text_blurb">Small service which maintains health and lag information of PostgreSQL database cluster. Information made available in shared memory segments to PHP processes such that stale reads do not happen.</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/pg_ctblmgr/src/master/" class="anounder">Cache Table Manager 2.0 (pg_ctblmgr)</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/pg_ctblmgr/src/master/" class="anounder">Cache Table Manager 2.0 (pgctblmgr)</a> [ C <span class="dot"></span> SQL <span class="dot"></span> Perl ]</h3>
         <p class="text_blurb">PostgreSQL extension which maintains asynchronous incremental materialized views using a logical replication slot and parent/child processes. Projected to reduce write I/Os by 50% for some production instances.</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/memcachemgr/src/master/" class="anounder">Memcache Manager</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/memcachemgr/src/master/" class="anounder">Memcache Manager</a> [ Perl <span class="dot"></span> SQL ]</h3>
         <p class="text_blurb">Simple PostgreSQL extension responsible for cache invalidation of objects changed in the database.</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/pgpolybool/src/master/" class="anounder">PGPolyBool</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/pgpolybool/src/master/" class="anounder">PGPolyBool</a> [ C <span class="dot"></span> SQL ]</h3>
         <p class="text_blurb">PostgreSQL geometry extension providing boolean operations for POLYGON datatypes, along with rounding out interoperability and casts between geometric types. Polygon overlapping function is orders of magnutude faster than PostGIS implementation</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/event_manager/src/master/" class="anounder">Event Manager</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/event_manager/src/master/" class="anounder">Event Manager</a> [ C <span class="dot"></span> SQL ]</h3>
         <p class="text_blurb">PostgreSQL extension-based service implementing asynchronous database triggers useful for process automation. Capable of bulk SQL execution and invoking external API endpoints from database activity.</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/tblmgr/src/master/" class="anounder">Cache Table Manager 1.0 (tblmgr)</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/tblmgr/src/master/" class="anounder">Cache Table Manager 1.0 (tblmgr)</a> [ Perl <span class="dot"></span> SQL ]</h3>
         <p class="text_blurb">PostgreSQL extension which maintains asynchronous incremental materialized views using triggers and a worker process.</p>
     </div>
     <div class="minor_section">
-        <h3><a href="https://bitbucket.org/neadwerx/pgopencl/src/master/" class="anounder">PGOpenCL (unfinished)</a></h3>
+        <h3><a href="https://bitbucket.org/neadwerx/pgopencl/src/master/" class="anounder">PGOpenCL (unfinished)</a> [ C ]</h3>
         <p class="text_blurb">PostgreSQL extension implementing GPU/FPGA/DPU-accelerated database operations using the OpenCL API</p>
     </div>
     <br />
