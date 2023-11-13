@@ -737,3 +737,8 @@ static void GetHugePageSize( size_t * hugepagesize, int * mmap_flags )
 ```
 
 We can then use this function to set our hugepage size based on the systems configuration.
+
+Since the patch was submitted, 0 movement has occurred.
+https://bugs.php.net/bug.php?id=79027
+
+There is also a similar bug submitted.
