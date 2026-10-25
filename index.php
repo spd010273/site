@@ -24,9 +24,9 @@
 <a href="resume.php" class="anounder">Technical</a>
 <br />
 <h3>Treatises</h3>
-<a href="blog/php-semaphores.md" class="anounder">PHP and Semaphores</a><br />
-<a href="blog/postgres-subtransactions.md" class="anounder">PostgreSQL, Subtransactions, and Your SLA</a><br />
-<a href="blog/php-sigsegv.md" class="anounder">Debugging a PHP SIGSEGV</a><br />
+<a href="blog/php-semaphores.html" class="anounder">PHP and Semaphores</a><br />
+<a href="blog/postgres-subtransactions.html" class="anounder">PostgreSQL, Subtransactions, and Your SLA</a><br />
+<a href="blog/php-sigsegv.html" class="anounder">Debugging a PHP SIGSEGV</a><br />
 <h3> Github </h3>
 <a href="http://example.com" class="anounder">soon</a>
 </div>
