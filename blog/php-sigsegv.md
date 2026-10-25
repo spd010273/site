@@ -11,7 +11,7 @@ One cold December morning, in 2019, we had a failed job notification along with 
 Dec 15 12:34:05 zeus kernel: php[28283]: segfault at 55adc0d19bc0 ip 00007f30f10fdff4 sp 00007ffd71bf9270 error 4 in libc-2.17.so[7f30f1090000+1c3000]
 ```
 
-Uh Oh. In this writup, we're going to diagnose this error and determine the root cause.
+Uh Oh. In this writeup, we're going to diagnose this error and determine the root cause.
 
 # Anatomy of a Segmentation Fault
 
@@ -21,12 +21,12 @@ A segmentation fault, colloquially segfault or in Linux parlance, SIGSEGV, is a 
     - NULL pointer dereference - or attempting to access memory address `0x0`
     - Buffer overflow / underflow -  typically caused by not checking iteration bounds or validating assumptions on string length.
     - Use after free - The program has previously released a block of memory to the OS, but then attempted to access that memory again.
-    - Stack overflow - The stack space has been exhausted, either from deep recursion or allocation of too many stack-based variabled.
+    - Stack overflow - The stack space has been exhausted, either from deep recursion or allocation of too many stack-based variables.
     - Permissions - The program attempted to perform an action on memory that it did not have permission to perform (write on read-only memory, for example).
-- Malicious behavior: A third party program or user is attempting to exploit a programmer error to get a priviledged process to do something it shouldn't be doing.
+- Malicious behavior: A third party program or user is attempting to exploit a programmer error to get a privileged process to do something it shouldn't be doing.
 - Solar Flares / Cosmic Rays: A gamma ray flips a bit in memory. In production, this should be at least three bits (Read: use ECC RAM). This is rare but has a non-0 probability. Unless your code is running at high altitudes, in a nuclear cleanup robot, or in space, one of the above points is the likely culprit.
 
-We can decompose the log message from above to gleam more information about the nature of this fault:
+We can decompose the log message from above to glean more information about the nature of this fault:
 
 - `php[28283]` A process called `php` with pid `28283` generated the fault
 - `at 55adc0d19bc0` the address the program was attempting to access when it generated the segmentation fault.
@@ -111,7 +111,7 @@ Dump of assembler code for function _IO_new_fclose:
 
 Either way, we've confirmed that the issue occurred when the php process invoked fclose(). But what were the circumstances of this failure? How was fclose being called? How do find where in the PHP source that this error.
 
-Depending on how reliably reproducable the error is, we can take a few routes:
+Depending on how reliably reproducible the error is, we can take a few routes:
 
 If we can reliably generate this error with a PHP script, the solution is simple: step through the code with a debugger attached (GDB).
 If we cannot reliably generate this we can either get a core dump or use something like dtrace.
@@ -489,7 +489,7 @@ Interesting! It calls mmap with the `MAP_HUGETLB` flag, with the size specified 
 Lets take a step back and see what these functions are doing:
 
 - Open `/proc/self/maps` to read where the PHP executable is currently loaded.
-- If we find the PHP executable, calculte the start and end of the address range we would like to copy
+- If we find the PHP executable, calculate the start and end of the address range we would like to copy
 - Call `accel_remap_huge_pages` with these addresses
 - Create a generic mmap allocation and copy the code to that address.
 - Create a hugepage allocation at the old address (the one we just copied from) and copy the code back to the hugepage now at it's original address.
@@ -501,8 +501,8 @@ Are there any things that can break here? Yes! We already know that the PHP's as
 1. execve() aligns PHP's address space near a 1 GiB page boundary (the random chance)
 2. PHP goes to map code to a hugepage from an existing memory segment
 3. ZEND calls mmap() with a 1GiB aligned address and a multiple of 2MiB size. 
-4. ZEND copies the PHP .text segment to the hugepage, but this mapping it way too large and corrupts the heap
-5. ZEND sets `PROD_READ | PROT_EXEC` on the page
+4. ZEND copies the PHP .text segment to the hugepage, but this mapping is way too large and corrupts the heap
+5. ZEND sets `PROT_READ | PROT_EXEC` on the page
 6. PHP jumps into its code (now in the huge page)
 7. A SIGSEGV occurs on the next heap access.
 
@@ -525,11 +525,11 @@ We can prove #1-3 in a single step. We simply need a program that:
 - The program needs to be sufficiently large such that its code segment is over 2MiB in size.
     - This would allow `accel_remap_huge_pages`
 
-For this to happen, specifically when proving #1, it comes fown to chance.
+For this to happen, specifically when proving #1, it comes down to chance.
 
 Any given 1GiB region consists of 262144 4KiB pages. And anything in the last 512 pages will get rounded up to the next alignment address (per `ZEND_MM_ALIGNMENT_SIZE_EX`). This means we can expect a 0.195% chance that a randomly selected address in a 1GiB region will align to a 1GiB boundary.
 
-Time for some psuedocode:
+Time for some pseudocode:
 
 Outer Script:
 ```
@@ -547,7 +547,7 @@ file = open( /proc/self/maps );
 fprintf( file, “%lx-lx”, start, end )
 1GB_page_boundary = ( start + 1024 * 1024 * 1024 - 1 ) & ~( 1024 * 1024 * 1024 -1 )
 2MB_page_boundary = ( start + 1024 * 1024 * 2 - 1 ) & ~( 1024 * 1024 * 2 - 1 )
-if( 1GB_page_bounary == 2MB_page_boundary )
+if( 1GB_page_boundary == 2MB_page_boundary )
     addr = mmap( 1GB_page_boundary, 1024 * 1024 * 4, <rest of PHP args> )
     if( addr == 1GB_page_boundary )
         print “Hit!\n”
@@ -741,4 +741,4 @@ We can then use this function to set our hugepage size based on the systems conf
 Since the patch was submitted, 0 movement has occurred.
 https://bugs.php.net/bug.php?id=79027
 
-There is also a similar bug submitted.
+While this may seem like a security issue (since there's a nearly 1GiB range of memory with WRX privileges), no write primative exists between the time the page is allocated and the crash occurs. The kernel also zeroes the page prior to handing it to the caller.

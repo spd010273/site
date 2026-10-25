@@ -138,7 +138,7 @@ table.dated_position {
                 <li><p class="list_elem">Built and maintained SAP, EDI, SFTP and other 3rd party integrations</p></li>
                 <li><p class="list_elem">Perform regular code, configuration, and hardware optimizations.</p></li>
                 <li><p class="list_elem">Provide ad-hoc application-level usage, performance statistics, and customer-directed reporting.</p></li>
-                <li><p class="list_elem">Provide Tier 3 support for both customers and infrastructure, including 24/7 on-call availablility.</p></li>
+                <li><p class="list_elem">Provide Tier 3 support for both customers and infrastructure, including 24/7 on-call availability.</p></li>
                 <li><p class="list_elem">Implement SQL deadlock detection and remediation in both PHP and Perl</p></li>
                 <li><p class="list_elem">Implement SQL-based Copy-on-Write system for complex objects and dependencies.</p></li>
             </ul>
@@ -222,7 +222,7 @@ table.dated_position {
     </div>
     <div class="minor_section">
         <h3><a href="https://bitbucket.org/neadwerx/pgpolybool/src/master/" class="anounder">PGPolyBool</a> [ C <span class="dot"></span> SQL ]</h3>
-        <p class="text_blurb">PostgreSQL geometry extension providing boolean operations for POLYGON datatypes, along with rounding out interoperability and casts between geometric types. Polygon overlapping function is orders of magnutude faster than PostGIS implementation</p>
+        <p class="text_blurb">PostgreSQL geometry extension providing boolean operations for POLYGON datatypes, along with rounding out interoperability and casts between geometric types. Polygon overlapping function is orders of magnitude faster than PostGIS implementation</p>
     </div>
     <div class="minor_section">
         <h3><a href="https://bitbucket.org/neadwerx/event_manager/src/master/" class="anounder">Event Manager</a> [ C <span class="dot"></span> SQL ]</h3>

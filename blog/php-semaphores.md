@@ -19,7 +19,7 @@ The common thread is either the exclusive modification of, or shared use of a co
 
 ## SystemV
 
-SystemV has a history stretching back to the 1980s. Design elements or actual software from the early years of UNIX systems still exist and influence software to this day. When I refer SystemV, however, I'm referring to one of those software components that have stood the test of time both in terms of robustness as well as how completely they satisfy their niche.
+SystemV has a history stretching back to the 1980s. Design elements or actual software from the early years of UNIX systems still exist and influence software to this day. When I refer to SystemV, however, I'm referring to one of those software components that have stood the test of time both in terms of robustness as well as how completely they satisfy their niche.
 
 The component of SystemV I'm referring to is IPC, or Inter-Process Communication. This component includes the semaphores I mentioned earlier - the methods programs use to signal their intentions to each other. SystemV IPC also includes a shared memory and a message queueing element. SystemV's semaphore implementation provides a few functions that programs can use to manipulate semaphores:
 
@@ -36,7 +36,7 @@ Shared resources require some type of atomic operation(s) to be able to function
 When a semaphore set is created, the programmer must specify the number of semaphores needed. In our running example, we will use two semaphores in our set. Semaphores are numbered starting from 0, and incrementing past that. Our example semaphore set's two semaphores will be:
 
 * 0: The 'write' semaphore. This indicates that we need exclusive access to a shared resource.
-* 1: The 'read' semaphore. This insicates that the shared resource is in-use but not being modified.
+* 1: The 'read' semaphore. This indicates that the shared resource is in-use but not being modified.
 
 These are considered an exclusive lock, and a shared lock, respectively. Programs that need to modify the resource must wait for all readers to finish using it. Conversely, a program that wants to read the shared resource must ensure it's not being modified before it attempts to read it.
 `semop()` typically takes a few arguments:
@@ -60,7 +60,7 @@ Here we wait for a semaphore's value to be 0. In our example, a writer or reader
 
 Semaphores cannot be less than 0, so another form of waiting that can occur is for an operation to be able to successfully execute. Let's walk through an example:
 
-1. Some programs have been running for some time. They use a shared resource. This shared resouce has a limited number of concurrent users, so the semaphore is initalized to 10.
+1. Some programs have been running for some time. They use a shared resource. This shared resource has a limited number of concurrent users, so the semaphore is initialized to 10.
 2. A few readers come along, and to indicate that they are using the shared resource, they decrement the semaphore by one. The semaphore now has a value of 7.
 3. A writer comes along, and needs exclusive access to the shared resource. To prevent other readers, it attempts to decrement the semaphore by 10,
 4. Since the decrement by 10 cannot complete, and the writer has not specified the `IPC_NOWAIT` flag, execution stops and it waits for its semaphore operation to complete.
@@ -86,17 +86,21 @@ Internally, when `sem_get()` is called, PHP creates a semaphore set with three s
 
 * 0: `SYSVSEM_SEM` This semaphore is initialized to the max number of possible acquisitions. When `sem_acquire()` is called, this is decremented, and when `sem_release()` is called, this is incremented.
 * 1: `SYSVSEM_USAGE` This is a counter of the number of processes using this semaphore. When a PHP process sees that it is the last process using the semaphore set (`SYSVSEM_USAGE` is equal to 1), it resets the value of `SYSVSEM_SEM` to the previous initialization value (maximum acquisitions)
-* 2: `SYSVSEM_SETVAL` this is a locking semaphore used to ensure the other two semaphores are operated on attomically. PHP asserts this lock when `sem_get()` is called, then PHP increments `SYSVSEM_USAGE`.
+* 2: `SYSVSEM_SETVAL` this is a locking semaphore used to ensure the other two semaphores are operated on atomically. PHP asserts this lock when `sem_get()` is called, then PHP increments `SYSVSEM_USAGE`.
 
-Given that PHP doesn't allow the user to specify the semaphore locking paradigm, external programs must adapt to use this locking scheme.
+Given that PHP doesn't allow the user to specify the semaphore locking paradigm, external programs must adapt to use this locking scheme. The reason for this writeup is to document this behavior, and provide basic code for interfacing with PHP's semaphore mechanisms.
 
 # Implementation
 
-The following implementation is in Perl, but can be readily adapted to C/C++ or languages that provide raw access to `semop()`. The scheme we are using is a single perl program is maintaining a shared resource and is responsible to writing / modifying it, and multiple PHP processes will access this shared resource for reading. The example Perl program will do the following:
+Due to PHP's usage of semaphores, we are left with what is effectively a write lock. This lock interferes with two major operations:
+- `sem_get()`: This is what we want - an arbitrary PHP process to read semaphore state or acquire a semaphore
+- `sem_remove()`: This is what we do not want. We do not want an arbitrary PHP worker to remove the semaphore set while other processes are using it to coordinate IPC.
+
+To disable `sem_remove()` as well as creating a wait-for-read primitive, we need to go through a four step initialization routine of the semaphore. The following implementation is in Perl, but can be readily adapted to C/C++ or languages that provide raw access to `semop()`. The scheme we are using is a single perl program is maintaining a shared resource and is responsible to writing / modifying it, and multiple PHP processes will access this shared resource for reading. The example Perl program will do the following:
 
 1. Initialize the semaphore set.
 2. Assert a write lock such that readers will wait at `sem_acquire()`
-3. Do some processesing to a shared resource.
+3. Do some processing to a shared resource.
 4. Deassert the write lock, allowing PHP readers to pass the `sem_acquire()` portion of their code.
 5. Attempt to reassert the write lock, but have it wait for all readers to complete their work.
 
@@ -113,10 +117,10 @@ Initial includes. IPC::SysV includes the semaphore operation functions.
 
 ```perl
 use constant {
-    MAX_ACQUIRE  => 32767,
-    SEMAPHORE_ID => 12345678,
-    SEM_PERM     => ( S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ),
-    SEM_FLAG     => IPC_CREAT,
+    MAX_ACQUIRE   => 32767,
+    SEMAPHORE_KEY => 12345678,
+    SEM_PERM      => ( S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH ),
+    SEM_FLAG      => IPC_CREAT,
 };
 
 my $pack_mod = 's' . do {
@@ -167,6 +171,17 @@ For example, the INITSTART member of this structure will:
 1. Wait for semaphore 2 (`SYSVSEM_SETVAL`) to be 0 with no flags.
 2. Increment semaphore 2 (`SYSVSEM_SETVAL`) by 1 once the above has been satisfied.
 
+
+The structure is laid out in the order of the initialization steps, with `INITSTART`, `INITCHECK`, `INITSET`, and `INITDONE`
+
+1. Lock `sem_get()` out by asserting `SYSVSEM_SETVAL` (`INITSTART` step)
+2. Wait for all `sem_acquire()` operations to complete. Both PHP and the interface must initialize `SYSVSEM_SEM` to the same `MAX_ACQUIRE` value (at the time of this writing, 32767). (`INITCHECK` step)
+3. Set `SYSVSEM_SEM` to `MAX_ACQUIRE` (`INITSET` step)
+4. Increment `SYSVSEM_USAGE`. This prevents PHP from resetting `SYSVSEM_SEM` to `MAX_ACQUIRE` and prevents invokation of `sem_remove()`, as no exiting PHP process is the final process working on the semaphore set. (`INITDONE` step)
+5. Release the semaphore set by deasserting `SYSVSEM_SETVAL` (Final operation in `INITDONE` step)
+
+The Perl code below initializes the semaphore set:
+
 ```perl
 my $semid = semget( SEMAPHORE_KEY, 3, SEM_PERM | SEM_FLAG );
 
@@ -199,12 +214,6 @@ unless( semop( $semid, $SEMOP_ARGS->{INITCHECK} ) )
 semop( $semid, $SEMOP_ARGS->{INITDONE} );
 ```
 
-The above is the initialization code for a PHP semaphore set for our use case. Here we:
-1. Lock out `sem_get()`
-2. Set `SYSVSEM_SEM` to `MAX_ACQUIRE` depending on whether PHP has already initialized the semaphore
-3. Verify that there are no other `sem_acquire()`s outstanding by waiting on a decrement
-4. Re-set `SYSVSEM_SEM` to `MAX_ACQUIRE`, then release `SYSVSEM_SETVAL` and increment `SYSVSEM_USAGE`
-
 Now, when we execute the following code:
 ```perl
 semop( $sem_id, $SEMOP_ARGS->{LOCK} );
@@ -212,3 +221,4 @@ semop( $sem_id, $SEMOP_ARGS->{LOCK} );
 
 This will wait for all `sem_acquire()`s operations to finish prior to setting `SYSVSEM_SEM` to zero. This has the added benefit of blocking readers in the same operation. Unlocking is the opposite - we increment / reset the semaphore to a value of `MAX_ACQUIRE` with `SEM_UNDO` and `IPC_NOWAIT` as flags.
 
+When work on the semaphore set is complete, it is better for the code that initialized the semaphore set to destroy it. Another method would be to decrement `SYSVSEM_USAGE` so that PHP will (eventually) call `sem_remove()`, though this and simply abandoning the set are discouraged as the set will be left dangling for an indeterminate amount of time.

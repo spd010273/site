@@ -128,7 +128,7 @@ ProcArrayApplyXidAssignment(TransactionId topxid,
 ...
 ```
 
-To a lesser extent - calls to `SubTransGetTopmostTransacton` ( which calls `LWLockAcquire` on `SubtransSLRU` and possibly `SimpleLruReadPage_ReadOnly` ) appears in:
+To a lesser extent - calls to `SubTransGetTopmostTransaction` ( which calls `LWLockAcquire` on `SubtransSLRU` and possibly `SimpleLruReadPage_ReadOnly` ) appears in:
 
 * backend/access/heap/heapam.c: HeapCheckForSerializableConflictOut()
 * backend/storage/ipc/procarray.c: TransactionIdsInProgress()
@@ -141,7 +141,7 @@ As described in the associated articles, avoiding subtransactions is critical fo
 
 ## Logical Replication
 
-Logical standby lag described in the symtoms section is caused by a bottleneck at the walsender as it is attempting to sequence transactions for the logical decoder.
+Logical standby lag described in the symptoms section is caused by a bottleneck at the walsender as it is attempting to sequence transactions for the logical decoder.
 
 Within the `WalSndLoop` in walsender.c, `XLogSendLogical` is called via function pointer prior to initialization. This calls `LogicalDecodingProcessRecord` prior to handing off the record to the Logical Decoder for output. Within `LogicalDecodingProcessRecord`, most normal transaction log operations are handled by `ReorderBufferProcessXid`. Eventually, `ReorderBufferSerializeTXN` is called, spending a large amount of time in the following loop:
 
@@ -164,7 +164,7 @@ This block sequences nested subtransactions, and while not related to the `Subtr
 
 Read replicas can get caught up in a similar soft-locking mode, but with a twist: As mentioned in the Postgres.ai blog post, this problem is predicated by a long-running transaction on the primary server.
 
-This keystone to this issue relies in the procarray hooks in which the replicas attempt to to lookup the top-level XID for a given XID. This magnifies the problem on the read replicas as this happens for every transaction, regardless of it having a savepoint. Long running queries keep that pg_subtrans entry active, extending the number of subtransactions needed to be searched through.
+This keystone to this issue relies in the procarray hooks in which the replicas attempt to lookup the top-level XID for a given XID. This magnifies the problem on the read replicas as this happens for every transaction, regardless of it having a savepoint. Long running queries keep that pg_subtrans entry active, extending the number of subtransactions needed to be searched through.
 
 
 # Prognosis:
@@ -194,4 +194,4 @@ When removing subtransactions, any call to `SAVEPOINT` is unsafe. Functions with
 The subtransaction functionality within PostgreSQL is important! There are use cases where they are unavoidable. The implementation is also correct - handling of the subtransactions is critical to PostgreSQL's MVCC (Multi Version Concurrency Control) functionality, as well as the high level operation of serializing client's changes to disk operations. What could help is the addition of tunable parameters. Allow database and system administrators to fine tune these buffer sizes in a way that suits a servers size and expected throughput. Small installations, some data warehouses, and many unknown use cases are fine with the default setting!
 In fact, this has already been addressed! As mentioned in the Gitlab article, Andrey Borodin at Yandex has addressed this with a [patch](https://www.postgresql.org/message-id/flat/494C5E7F-E410-48FA-A93E-F7723D859561%40yandex-team.ru#18c79477bf7fc44a3ac3d1ce55e4c169). Let's get that reviewed or otherwise integrated into the code base!
 
-However, logical replication's interaction with subtransactions is a different beast entirely. The sequencing of these subtransactions MUST occur for the logical decoder to see the 'correct' order of operations as they occured within a transaction.
+However, logical replication's interaction with subtransactions is a different beast entirely. The sequencing of these subtransactions MUST occur for the logical decoder to see the 'correct' order of operations as they occurred within a transaction.
