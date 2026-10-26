@@ -42,9 +42,9 @@ for my $pkg (@pkgs) {
 if (@missing) {
     print "install.pl: installing: @missing\n";
     system('dnf', 'install', '-y', @missing) == 0
-      or die "install.pl: dnf install failed -- if pandoc is not in "
-           . "your enabled repos, enable the extras/appstream repo "
-           . "or install pandoc manually\n";
+      or die "install.pl: dnf install failed -- on RHEL/Alma based "
+           . "systems pandoc lives in the EPEL repo; enable it first "
+           . "(dnf install -y epel-release) or install pandoc manually\n";
 }
 else {
     print "install.pl: all dependencies already installed\n";
