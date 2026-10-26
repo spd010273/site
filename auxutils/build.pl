@@ -47,7 +47,7 @@ my $template = <<'HTML';
 </head>
 <body>
 <div class="container">
-  <a class="home-link" href="../index.php">&larr; Home</a>
+  <a class="home-link" href="../index.html">&larr; Home</a>
   <div id="content">
 __CONTENT__
   </div>

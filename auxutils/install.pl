@@ -31,7 +31,7 @@ print "install.pl: detected: $release\n";
 system('dnf', '--version') == 0
   or die "install.pl: dnf not found or not functional\n";
 
-my @pkgs = qw(pandoc);
+my @pkgs = qw(pandoc nginx tar);
 
 # Only install packages that are missing.
 my @missing;

@@ -3,23 +3,28 @@
 # deploy.sh -- deploy the site to the target server.
 #
 # The target server has no access to the git repo, so this script
-# rsyncs the working tree over and runs the build remotely.
+# rsyncs the working tree, runs the build remotely, pushes the nginx
+# server block when it changed, reloads nginx, and verifies the site
+# over HTTP.
 #
-# Requirements on THIS machine: rsync, ssh key access as the deploy
-# user.
-# Requirements on the target: perl, pandoc (see auxutils/install.pl),
-# /var/www/site writable by the deploy user, nginx + php-fpm running
-# (one-time setup in auxutils/DEPLOY.md).
+# Requirements on THIS machine: rsync, curl, ssh key access as the
+# deploy user AND as the nginx admin user (root by default -- it needs
+# to write /etc/nginx).
+# Requirements on the target: perl, pandoc, /var/www/site writable by
+# the deploy user, nginx running (one-time setup).
 #
 # Usage:
 #   auxutils/deploy.sh [user@host]
 #
-# Defaults to the test server chris@10.0.0.143.
+# Defaults to the test server chris@10.0.0.143. The nginx step runs as
+# root@<same host>; override with NGINX_ADMIN=user@host.
 
 set -euo pipefail
 
 HOST="${1:-chris@10.0.0.143}"
 REMOTE_DIR="/var/www/site"
+NGINX_ADMIN="${NGINX_ADMIN:-root@${HOST#*@}}"
+NGINX_CONF="/etc/nginx/conf.d/site.conf"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
@@ -37,4 +42,29 @@ rsync -avz --delete --exclude .git "$ROOT/" "$HOST:$REMOTE_DIR/"
 echo "==> building on $HOST"
 ssh "$HOST" "perl $REMOTE_DIR/auxutils/build.pl $REMOTE_DIR"
 
-echo "==> done: http://${HOST#*/}/"
+echo "==> nginx config"
+LOCAL_CONF="$SCRIPT_DIR/nginx-site.conf"
+# Push + reload only when the config actually changed; a no-op reload
+# is harmless but pointless on every deploy.
+if ssh "$NGINX_ADMIN" "cat $NGINX_CONF 2>/dev/null" | diff -q "$LOCAL_CONF" - >/dev/null 2>&1; then
+    echo "    unchanged, skipping reload"
+else
+    scp "$LOCAL_CONF" "$NGINX_ADMIN:$NGINX_CONF"
+    # nginx -t aborts (and set -e stops the deploy) on a bad config,
+    # so a broken block can never reach a live reload.
+    ssh "$NGINX_ADMIN" "nginx -t && systemctl reload nginx"
+    echo "    pushed + reloaded"
+fi
+
+echo "==> verifying"
+BASE="http://${HOST#*@}"
+for u in / /resume.html /blog/php-sigsegv.html; do
+    code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE$u")"
+    if [ "$code" != "200" ]; then
+        echo "deploy.sh: $BASE$u returned $code" >&2
+        exit 1
+    fi
+    echo "    $u -> $code"
+done
+
+echo "==> done: $BASE/"
